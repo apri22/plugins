@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import android.os.SystemClock;
 
 @FunctionalInterface
 interface ErrorCallback {
@@ -72,6 +73,10 @@ interface ErrorCallback {
 
 public class Camera {
   private static final String TAG = "Camera";
+
+  /** Timeout for the pre-capture sequence. */
+  private static final long PRECAPTURE_TIMEOUT_MS = 1000;
+
 
   private final SurfaceTextureEntry flutterTexture;
   private final CameraManager cameraManager;
@@ -105,6 +110,7 @@ public class Camera {
   private boolean useAutoFocus = true;
   private Range<Integer> fpsRange;
   private PlatformChannel.DeviceOrientation lockedCaptureOrientation;
+  private long preCaptureStartTime;
 
   private static final HashMap<String, Integer> supportedImageFormats;
   // Current supported outputs
@@ -503,11 +509,16 @@ public class Camera {
                   || aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED
                   || aeState == CaptureRequest.CONTROL_AE_STATE_CONVERGED) {
                 pictureCaptureRequest.setState(State.waitingPreCaptureReady);
+                setPreCaptureStartTime();
               }
               break;
             case waitingPreCaptureReady:
               if (aeState == null || aeState != CaptureRequest.CONTROL_AE_STATE_PRECAPTURE) {
                 runPictureCapture();
+              } else{
+                if(hitPreCaptureTimeout()){
+                  unlockAutoFocus();
+                }
               }
           }
         }
@@ -630,6 +641,21 @@ public class Camera {
       result.error("videoRecordingFailed", e.getMessage(), null);
     }
   }
+
+  /** Sets the time the pre-capture sequence started. */
+  private void setPreCaptureStartTime() {
+    preCaptureStartTime = SystemClock.elapsedRealtime();
+  }
+
+  /**
+   * Check if the timeout for the pre-capture sequence has been reached.
+   *
+   * @return true if the timeout is reached; otherwise false is returned.
+   */
+  private boolean hitPreCaptureTimeout() {
+    return (SystemClock.elapsedRealtime() - preCaptureStartTime) > PRECAPTURE_TIMEOUT_MS;
+  }
+
 
   public void stopVideoRecording(@NonNull final Result result) {
     if (!recordingVideo) {
