@@ -177,7 +177,7 @@ class JavascriptChannel {
   JavascriptChannel({
     required this.name,
     required this.onMessageReceived,
-  })   : assert(name != null),
+  })  : assert(name != null),
         assert(onMessageReceived != null),
         assert(_validChannelNames.hasMatch(name));
 
@@ -228,6 +228,7 @@ class WebView extends StatefulWidget {
     this.initialMediaPlaybackPolicy =
         AutoMediaPlaybackPolicy.require_user_action_for_all_media_types,
     this.allowsInlineMediaPlayback = false,
+    this.ignoreSslCertificateErrors = false,
   })  : assert(javascriptMode != null),
         assert(initialMediaPlaybackPolicy != null),
         assert(allowsInlineMediaPlayback != null),
@@ -345,6 +346,15 @@ class WebView extends StatefulWidget {
   ///
   /// By default `allowsInlineMediaPlayback` is false.
   final bool allowsInlineMediaPlayback;
+
+  /// Determines whether errors with SSL certificates should be ignored.
+  ///
+  /// If `true`, problems with SSL certificates will be ignored. This is generally useful only in development scenarios
+  /// where self-signed certificates are commonly used. It is strongly recommended to leave this as `false` in
+  /// production scenarios.
+  ///
+  /// This only works on Android.
+  final bool ignoreSslCertificateErrors;
 
   /// Invoked when a page starts loading.
   final PageStartedCallback? onPageStarted;
@@ -488,6 +498,7 @@ WebSettings _webSettingsFromWidget(WebView widget) {
     gestureNavigationEnabled: widget.gestureNavigationEnabled,
     allowsInlineMediaPlayback: widget.allowsInlineMediaPlayback,
     userAgent: WebSetting<String?>.of(widget.userAgent),
+    ignoreSslCertificateErrors: widget.ignoreSslCertificateErrors,
   );
 }
 
@@ -503,11 +514,13 @@ WebSettings _clearUnchangedWebSettings(
   assert(newValue.hasNavigationDelegate != null);
   assert(newValue.debuggingEnabled != null);
   assert(newValue.userAgent != null);
+  assert(newValue.ignoreSslCertificateErrors != null);
 
   JavascriptMode? javascriptMode;
   bool? hasNavigationDelegate;
   bool? hasProgressTracking;
   bool? debuggingEnabled;
+  bool? ignoreSslCertificateErrors;
   WebSetting<String?> userAgent = WebSetting.absent();
   if (currentValue.javascriptMode != newValue.javascriptMode) {
     javascriptMode = newValue.javascriptMode;
@@ -524,6 +537,10 @@ WebSettings _clearUnchangedWebSettings(
   if (currentValue.userAgent != newValue.userAgent) {
     userAgent = newValue.userAgent;
   }
+  if (currentValue.ignoreSslCertificateErrors !=
+      newValue.ignoreSslCertificateErrors) {
+    ignoreSslCertificateErrors = newValue.ignoreSslCertificateErrors;
+  }
 
   return WebSettings(
     javascriptMode: javascriptMode,
@@ -531,6 +548,7 @@ WebSettings _clearUnchangedWebSettings(
     hasProgressTracking: hasProgressTracking,
     debuggingEnabled: debuggingEnabled,
     userAgent: userAgent,
+    ignoreSslCertificateErrors: ignoreSslCertificateErrors,
   );
 }
 
